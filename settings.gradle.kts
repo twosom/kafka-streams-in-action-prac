@@ -1,2 +1,2 @@
-rootProject.name = "kafka-stream-in-action"
+rootProject.name = "kafka-streams-in-action"
 
