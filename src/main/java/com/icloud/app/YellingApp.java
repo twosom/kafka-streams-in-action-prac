@@ -1,7 +1,5 @@
-package com.icloud;
+package com.icloud.app;
 
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -11,9 +9,10 @@ import org.apache.kafka.streams.kstream.Produced;
 
 import java.util.Properties;
 
+import static com.icloud.utils.KafkaStreamPracUtils.stringSerde;
+
 public class YellingApp {
 
-    public static final Serde<String> stringSerde = Serdes.String();
 
     public static void main(String[] args) throws InterruptedException {
         var props = getConfig();
