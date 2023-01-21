@@ -25,8 +25,7 @@ public class DataGenerator {
     public static final int DEFAULT_NUM_PURCHASES = 100_000;
     public static final int NUMBER_TRADED_COMPANIES = 50;
     public static final int NUM_ITERATIONS = 1_000;
-
-    private static Faker dateFaker = new Faker();
+    private static final Faker dateFaker = new Faker();
     private static Supplier<Date> timestampGenerator = () -> dateFaker.date().past(15, TimeUnit.MINUTES, new Date());
 
     private DataGenerator() {
