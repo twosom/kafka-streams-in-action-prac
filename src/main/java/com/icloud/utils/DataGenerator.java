@@ -4,6 +4,7 @@ import com.github.javafaker.ChuckNorris;
 import com.github.javafaker.Faker;
 import com.github.javafaker.Finance;
 import com.github.javafaker.Name;
+import com.icloud.model.PublicTradedCompany;
 import com.icloud.model.Purchase;
 
 import java.time.Instant;
@@ -19,12 +20,12 @@ import java.util.regex.Pattern;
 
 public class DataGenerator {
 
-    public static final int NUMBER_UNIQUE_CUSTOMERS = 100;
+    public static final int NUMBER_UNIQUE_CUSTOMERS = 100_000;
     public static final int NUMBER_UNIQUE_STORES = 15;
     public static final int NUMBER_TEXT_STATEMENTS = 15;
-    public static final int DEFAULT_NUM_PURCHASES = 100_000;
+    public static final int DEFAULT_NUM_PURCHASES = 100;
     public static final int NUMBER_TRADED_COMPANIES = 50;
-    public static final int NUM_ITERATIONS = 1_000;
+    public static final int NUM_ITERATIONS = 100;
     private static final Faker dateFaker = new Faker();
     private static Supplier<Date> timestampGenerator = () -> dateFaker.date().past(15, TimeUnit.MINUTES, new Date());
 
@@ -96,6 +97,29 @@ public class DataGenerator {
 
     }
 
+    public static List<PublicTradedCompany> stockTicker(int numberCompanies) {
+        return generatePublicTradedCompanies(numberCompanies);
+    }
+
+    public static List<PublicTradedCompany> generatePublicTradedCompanies(int numberCompanies) {
+        List<PublicTradedCompany> companies = new ArrayList<>();
+        Faker faker = new Faker();
+        Random random = new Random();
+        for (int i = 0; i < numberCompanies; i++) {
+            String name = faker.company().name();
+            String stripped = name.replaceAll("[^A-Za-z]", "");
+            int start = random.nextInt(stripped.length() - 4);
+            String symbol = stripped.substring(start, start + 4);
+            double volatility = Double.parseDouble(faker.options().option("0.01", "0.02", "0.03", "0.04", "0.05", "0.06", "0.07", "0.08", "0.09"));
+            double lastSold = faker.number().randomDouble(2, 15, 150);
+            String sector = faker.options().option("Energy", "Finance", "Technology", "Transportation", "Health Care");
+            String industry = faker.options().option("Oil & Gas Production", "Coal Mining", "Commercial Banks", "Finance/Investors Services", "Computer Communications Equipment", "Software Consulting", "Aerospace", "Railroads", "Major Pharmaceuticals");
+            companies.add(new PublicTradedCompany(volatility, lastSold, symbol, name, sector, industry));
+        }
+
+        return companies;
+
+    }
 
     private static Purchase generateCafePurchase(Purchase purchase, Faker faker) {
         Date date = purchase.getPurchaseDate();

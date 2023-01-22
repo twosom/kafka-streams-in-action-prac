@@ -1,0 +1,29 @@
+package com.icloud.model;
+
+
+public class StockTickerData {
+
+    private double price;
+    private String symbol;
+
+    public StockTickerData(double price, String symbol) {
+        this.price = price;
+        this.symbol = symbol;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public String getSymbol() {
+        return symbol;
+    }
+
+    @Override
+    public String toString() {
+        return "StockTickerData{" +
+                "price=" + price +
+                ", symbol='" + symbol + '\'' +
+                '}';
+    }
+}
