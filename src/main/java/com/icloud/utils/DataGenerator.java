@@ -6,6 +6,7 @@ import com.github.javafaker.Finance;
 import com.github.javafaker.Name;
 import com.icloud.model.PublicTradedCompany;
 import com.icloud.model.Purchase;
+import com.icloud.model.StockTransaction;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -175,6 +176,22 @@ public class DataGenerator {
         }
 
         return stores;
+    }
+
+    public static List<StockTransaction> generateStockTransactions(List<Customer> customers, List<PublicTradedCompany> companies, int number) {
+        List<StockTransaction> transactions = new ArrayList<>(number);
+        Faker faker = new Faker();
+        for (int i = 0; i < number; i++) {
+            int numberShares = faker.number().numberBetween(100, 50000);
+            Customer customer = customers.get(faker.number().numberBetween(0, customers.size()));
+            PublicTradedCompany company = companies.get(faker.number().numberBetween(0, companies.size()));
+            Date transactionDate = timestampGenerator.get();
+            StockTransaction transaction = StockTransaction.newBuilder().withCustomerId(customer.customerId).withTransactionTimestamp(transactionDate)
+                    .withIndustry(company.getIndustry()).withSector(company.getSector()).withSharePrice(company.updateStockPrice()).withShares(numberShares)
+                    .withSymbol(company.getSymbol()).withPurchase(true).build();
+            transactions.add(transaction);
+        }
+        return transactions;
     }
 
 

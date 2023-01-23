@@ -26,6 +26,13 @@ public class ShareVolume {
         return new Builder();
     }
 
+    public static Builder newBuilder(StockTransaction stockTransaction) {
+        Builder builder = new Builder();
+        builder.symbol = stockTransaction.getSymbol();
+        builder.shares = stockTransaction.getShares();
+        builder.industry = stockTransaction.getIndustry();
+        return builder;
+    }
 
     public static Builder newBuilder(ShareVolume copy) {
         Builder builder = new Builder();

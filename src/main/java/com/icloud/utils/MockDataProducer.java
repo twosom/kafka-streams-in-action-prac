@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.icloud.model.PublicTradedCompany;
 import com.icloud.model.Purchase;
 import com.icloud.model.StockTickerData;
+import com.icloud.model.StockTransaction;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -12,12 +13,12 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static com.icloud.Topics.CLIENTS;
+import static com.icloud.Topics.COMPANIES;
 import static com.icloud.utils.DataGenerator.NUMBER_UNIQUE_CUSTOMERS;
 import static com.icloud.utils.DataGenerator.NUM_ITERATIONS;
 
@@ -29,9 +30,11 @@ public class MockDataProducer {
 
     private static final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
     private static final String TRANSACTIONS_TOPIC = "transactions";
-    private static final Logger LOG = LoggerFactory.getLogger(MockDataProducer.class);
+    public static final String STOCK_TRANSACTIONS_TOPIC = "stock-transactions";
+    public static final String FINANCIAL_NEWS = "financial-news";
     public static final String STOCK_TICKER_TABLE_TOPIC = "stock-ticker-table";
     public static final String STOCK_TICKER_STREAM_TOPIC = "stock-ticker-stream";
+    private static final Logger LOG = LoggerFactory.getLogger(MockDataProducer.class);
     private static ExecutorService executorService = Executors.newFixedThreadPool(1);
     private static volatile boolean keepRunning = true;
     private static Producer<String, String> producer;
@@ -90,6 +93,80 @@ public class MockDataProducer {
             LOG.info("Done generating StockTickerData Data");
         };
         executorService.submit(generateTask);
+    }
+
+    public static void produceStockTransactions(int numberIterations, int numberTradedCompanies, int numberCustomers, boolean populateGlobalTables) {
+        List<PublicTradedCompany> companies = getPublicTradedCompanies(numberTradedCompanies);
+        List<DataGenerator.Customer> customers = getCustomers(numberCustomers);
+
+        if (populateGlobalTables) {
+            populateCompaniesGlobalKTable(companies);
+            populateCustomersGlobalKTable(customers);
+        }
+
+        publishFinancialNews(companies);
+        Runnable produceStockTransactionsTask = () -> {
+            init();
+            int counter = 0;
+            while (counter++ < numberIterations && keepRunning) {
+                List<StockTransaction> transactions = DataGenerator.generateStockTransactions(customers, companies, 50);
+                List<String> jsonTransactions = convertToJson(transactions);
+                for (String jsonTransaction : jsonTransactions) {
+                    ProducerRecord<String, String> record = new ProducerRecord<>(STOCK_TRANSACTIONS_TOPIC, null, jsonTransaction);
+                    producer.send(record, callback);
+                }
+                LOG.info("Stock Transactions Batch Sent");
+
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    Thread.interrupted();
+                }
+            }
+            LOG.info("Done generating stock data");
+
+        };
+        executorService.submit(produceStockTransactionsTask);
+    }
+
+    private static List<PublicTradedCompany> getPublicTradedCompanies(int numberTradedCompanies) {
+        return DataGenerator.generatePublicTradedCompanies(numberTradedCompanies);
+    }
+
+    private static List<DataGenerator.Customer> getCustomers(int numberCustomers) {
+        return DataGenerator.generateCustomers(numberCustomers);
+    }
+
+    private static void populateCustomersGlobalKTable(List<DataGenerator.Customer> customers) {
+        init();
+        for (DataGenerator.Customer customer : customers) {
+            String customerName = customer.getLastName() + ", " + customer.getFirstName();
+            ProducerRecord<String, String> record = new ProducerRecord<>(CLIENTS.topicName(), customer.getCustomerId(), customerName);
+            producer.send(record, callback);
+        }
+    }
+
+    private static void populateCompaniesGlobalKTable(List<PublicTradedCompany> companies) {
+        init();
+        for (PublicTradedCompany company : companies) {
+            ProducerRecord<String, String> record = new ProducerRecord<>(COMPANIES.topicName(), company.getSymbol(), company.getName());
+            producer.send(record, callback);
+        }
+    }
+
+    private static void publishFinancialNews(List<PublicTradedCompany> companies) {
+        init();
+        Set<String> industrySet = new HashSet<>();
+        for (PublicTradedCompany company : companies) {
+            industrySet.add(company.getIndustry());
+        }
+        List<String> news = DataGenerator.generateFinancialNews();
+        int counter = 0;
+        for (String industry : industrySet) {
+            ProducerRecord<String, String> record = new ProducerRecord<>(FINANCIAL_NEWS, industry, news.get(counter++));
+            producer.send(record, callback);
+        }
+        LOG.info("Financial news sent");
     }
 
     private static void init() {

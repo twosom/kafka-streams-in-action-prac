@@ -44,20 +44,17 @@ public class FixedSizePriorityQueueAdapter extends TypeAdapter<FixedSizePriority
 
     @Override
     public FixedSizePriorityQueue<ShareVolume> read(JsonReader reader) throws IOException {
-        List<ShareVolume> list = new ArrayList<>();
-        reader.beginArray();
-        while (reader.hasNext()) {
-            list.add(gson.fromJson(reader.nextString(), ShareVolume.class));
-        }
-        reader.endArray();
-
         Comparator<ShareVolume> c = (c1, c2) -> c2.getShares() - c1.getShares();
         FixedSizePriorityQueue<ShareVolume> fixedSizePriorityQueue = new FixedSizePriorityQueue<>(c, 5);
-
-        for (ShareVolume transaction : list) {
-            fixedSizePriorityQueue.add(transaction);
-        }
-
+        JsonValueHolder holder = gson.fromJson(reader, JsonValueHolder.class);
+        holder.inner.forEach(fixedSizePriorityQueue::add);
         return fixedSizePriorityQueue;
     }
+
+    static class JsonValueHolder {
+        Integer maxSize;
+
+        List<ShareVolume> inner;
+    }
+
 }
